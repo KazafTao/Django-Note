@@ -1,1 +1,1 @@
-# Django-Note
+# Django 开发笔记
