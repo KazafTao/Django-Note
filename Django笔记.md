@@ -41,13 +41,25 @@ grammar_cjkRuby: true
 urls.py 负责处理http请求，根据正则表达式，匹配app.views.py中对应的响应函数
 **settings.py**
 * INSTALLED_APPS
-	* 要想在django中运行app，必须将app名填写在INSTALLED_APPS列表中
+	* 要想在django中运行app，必须将app名填写在INSTALLED_APPS列表
+* TEMPLATES
+	* DIRS 模板文件夹路径，一般默认写好
+* DATABASES
+	* 数据库配置，默认为sqlite3，如果想改成mysql,应修改为
+
+		```
+		'default': {
+				'ENGINE': 'django.db.backends.mysql',
+				'NAME': 'myproject',
+				'USER': 'root',
+				'PASSWORD': 'your_password',
+				'HOST': 'your_db_ip',
+			}
+		```
 * LANGUAGE_CODE
 	* 设置网站的语言，默认英文en-us，简体中文为zh-Hans
 * TIME_ZONE
 	* 设置时区，中国区为Asia/Shanghai
-* TEMPLATES
-	* DIRS 模板文件夹路径，一般默认写好
 	
 
 ----------
