@@ -120,18 +120,18 @@ python manage.py createsuperuser
 	 * setenforce 0
 	 *  新建firewalld service
 		 3.1. 在/usr/lib/firewalld/services下添加django.xml文件
-			```    
-						
-						<?xml version="1.0" encoding="utf-8"?>
+						```    
 
-						<service>
-						<short>Django</short>
-						<description>My Django project.</description>
-						<port protocol="tcp" port="8001"/>
-						</service>
-			```
-		3.2. firewall-cmd --permanent --add-service=django
-		3.3. systemctl restart firewalld 
+									<?xml version="1.0" encoding="utf-8"?>
+
+									<service>
+									<short>Django</short>
+									<description>My Django project.</description>
+									<port protocol="tcp" port="8001"/>
+									</service>
+						```
+		3.2. firewall-cmd --permanent --add-service=django   
+		3.3. systemctl restart firewalld    
 	 * 在阿里云上开放8001端口
 4. 使用 uwsgi 来部署
 	4.1. pip install uwsgi --upgrade
@@ -157,5 +157,9 @@ python manage.py createsuperuser
 		3. vim ~/.bashrc
 		4. export LD_LIBRARY_PATH="/usr/local/lib"
 		5. source ~/.bashrc
+* django.core.exceptions.ImproperlyConfigured: Error loading MySQLdb module.
+	* yum install mysql-devel -y
+	* yum install -y libmariadbclient-dev
+	* pip3 install  mysqlclient
  
 
