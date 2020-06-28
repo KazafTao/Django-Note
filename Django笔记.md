@@ -99,9 +99,16 @@ urls.py 负责处理http请求，根据正则表达式，匹配app.views.py中�
 
 # 后台管理
 
-### 创建管理员
+## 创建管理员
 python manage.py createsuperuser
 
+## 美化
+ 采用simpleui框架，按照官网指导进行配置，取代django自带的admin后台
+ 
+ - 安装simpleui
+	 - pip3 install django-simpleui
+	 - 在settings.py中添加simpleui![settings.py配置](./images/1593352734296.png)
+	 - python3 manage.py collectstatic
 
 ----------
 # 部署到Linux
