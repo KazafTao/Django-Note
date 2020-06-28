@@ -133,9 +133,9 @@ python manage.py createsuperuser
 		3.2. firewall-cmd --permanent --add-service=django   
 		3.3. systemctl restart firewalld    
 	 * 在阿里云上开放8001端口
-4. 使用 uwsgi 来部署
-	4.1. pip install uwsgi --upgrade
-	4.2 uwsgi --http :8001 --chdir /root/Django/  --module Django.wsgi
+4. 使用 uwsgi 来部署   
+	4.1. pip install uwsgi --upgrade   
+	4.2 uwsgi --http :8001 --chdir /root/Django/  --module Django.wsgi    
 ```chdir是项目的根目录，module是有wsgi.py的那个目录```   
 
 
