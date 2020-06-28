@@ -41,13 +41,25 @@ grammar_cjkRuby: true
 urls.py 负责处理http请求，根据正则表达式，匹配app.views.py中对应的响应函数
 **settings.py**
 * INSTALLED_APPS
-	* 要想在django中运行app，必须将app名填写在INSTALLED_APPS列表中
+	* 要想在django中运行app，必须将app名填写在INSTALLED_APPS列表
+* TEMPLATES
+	* DIRS 模板文件夹路径，一般默认写好
+* DATABASES
+	* 数据库配置，默认为sqlite3，如果想改成mysql,应修改为
+
+		```
+		'default': {
+				'ENGINE': 'django.db.backends.mysql',
+				'NAME': 'myproject',
+				'USER': 'root',
+				'PASSWORD': 'your_password',
+				'HOST': 'your_db_ip',
+			}
+		```
 * LANGUAGE_CODE
 	* 设置网站的语言，默认英文en-us，简体中文为zh-Hans
 * TIME_ZONE
 	* 设置时区，中国区为Asia/Shanghai
-* TEMPLATES
-	* DIRS 模板文件夹路径，一般默认写好
 	
 
 ----------
@@ -87,9 +99,16 @@ urls.py 负责处理http请求，根据正则表达式，匹配app.views.py中�
 
 # 后台管理
 
-### 创建管理员
+## 创建管理员
 python manage.py createsuperuser
 
+## 美化
+ 采用simpleui框架，按照官网指导进行配置，取代django自带的admin后台
+ 
+ - 安装simpleui
+	 - pip3 install django-simpleui
+	 - 在settings.py中添加simpleui![settings.py配置](./images/1593352734296.png)
+	 - python3 manage.py collectstatic
 
 ----------
 # 部署到Linux
@@ -108,22 +127,22 @@ python manage.py createsuperuser
 	 * setenforce 0
 	 *  新建firewalld service
 		 3.1. 在/usr/lib/firewalld/services下添加django.xml文件
-			```    
-						
-						<?xml version="1.0" encoding="utf-8"?>
+						```    
 
-						<service>
-						<short>Django</short>
-						<description>My Django project.</description>
-						<port protocol="tcp" port="8001"/>
-						</service>
-			```
-		3.2. firewall-cmd --permanent --add-service=django
-		3.3. systemctl restart firewalld 
+									<?xml version="1.0" encoding="utf-8"?>
+
+									<service>
+									<short>Django</short>
+									<description>My Django project.</description>
+									<port protocol="tcp" port="8001"/>
+									</service>
+						```
+		3.2. firewall-cmd --permanent --add-service=django   
+		3.3. systemctl restart firewalld    
 	 * 在阿里云上开放8001端口
-4. 使用 uwsgi 来部署
-	4.1. pip install uwsgi --upgrade
-	4.2 uwsgi --http :8001 --chdir /root/Django/  --module Django.wsgi
+4. 使用 uwsgi 来部署   
+	4.1. pip install uwsgi --upgrade   
+	4.2 uwsgi --http :8001 --chdir /root/Django/  --module Django.wsgi    
 ```chdir是项目的根目录，module是有wsgi.py的那个目录```   
 
 
@@ -145,5 +164,9 @@ python manage.py createsuperuser
 		3. vim ~/.bashrc
 		4. export LD_LIBRARY_PATH="/usr/local/lib"
 		5. source ~/.bashrc
+* django.core.exceptions.ImproperlyConfigured: Error loading MySQLdb module.
+	* yum install mysql-devel -y
+	* yum install -y libmariadbclient-dev
+	* pip3 install  mysqlclient
  
 
