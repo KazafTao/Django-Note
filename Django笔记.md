@@ -16,7 +16,7 @@ pip install django
 		- manage.py          -- 管理项目，包括启动，创建app和管理数据
 		- project
 			- __init__.py
-			- asgi.py        -- 接受网络请求
+			- asgi.py        -- 接收网络请求
 			- settings.py    -- 项目配置
 			- urls.py        -- uri和函数的映射关系
 			- wsgi.py        -- 接受网络请求
@@ -216,6 +216,131 @@ django中推荐的写法
 {% endif %}
 ```
 
+## ORM
+
+兼容各种数据库客户端的中间件，主要用于将程序中的对象持久化到关系型数据库中。
+
+两个主要作用：
+
+- 创建、修改、删除数据库中的表(不需要写sql语句)，但无法创建数据库
+
+- 操作表中的数据
+
+### 连接数据库
+
+在settings.py中进行配置和修改，修改DATABASES的值
+
+#### MySQL
+
+```python
+'default': {
+    'ENGINE': 'django.db.backends.mysql',
+    'NAME': 'db_name',                     # 数据库名
+    'USER':'root',
+    'PASSWORD':'123456',                   # root密码
+    'HOST':'127.0.0.1',                    # 数据库ip
+    'PORT':3306,                           # 数据库端口
+}
+```
+
+### 操作表
+
+在models.py中定义相应的类，orm会根据类来创建数据库表appName_className，表字段根据类中的属性来定义。id默认自动生成且为主键，如
+
+#### 创建表
+
+```python
+class UserInfo(models.Model):
+    name = models.CharField(max_length=32)
+    password = models.CharField(max_length=64)
+    age = models.IntegerField()
+
+# orm会翻译为
+# create table app_userinfo(
+#     id bigint auto_increment primary key,
+#     name varchar(32),
+#     password varchar(32),
+#     age int
+# )
+```
+
+确保应用已注册(在settings.py中的INSTALLED_APPS中已配置)，执行下列命令
+
+```shell
+python manage.py makemigrations
+python manage.py migrate
+```
+
+#### 删除表
+
+将要删除的表在models.py中对应的类注释掉，再执行
+
+```shell
+python manage.py makemigrations
+python manage.py migrate
+```
+
+#### 修改表
+
+将models.py中要修改的类的属性改成需要的属性，新增字段要加默认值或者允许为空
+
+```python
+ data = models.CharField(default="xxx")  # 设置默认值
+ data = models.CharField(null=True, blank=True)  # 允许为空
+```
+
+再执行
+
+```shell
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### 操作数据
+
+#### 插入数据
+
+```python
+from app.models import Department
+# Department是models.py中的类
+def orm(request):
+    Department.objects.create(title="市场部")
+# orm会自动翻译为
+# insert into app_department(title) values("销售部")
+```
+
+#### 删除数据
+
+```python
+# 删除id为1的数据
+Department.objects.filter(id=1).delete() 
+```
+
+#### 查询数据
+
+```python
+ # 查询表中的所有数据
+queryset = Department.objects.all()
+# 有条件筛选
+queryset = Department.objects.filter(id=1)
+# 针对只含有一条数据的查询，直接获取对象而不是一个queryset数组
+target = Department.objects.filter(id=1).first()
+# 使用查询到的数据
+for object in queryset:
+    print(object.id, object.title)
+```
+
+#### 修改数据
+
+```python
+# 修改所有数据
+Department.objects.all().update(title="IT部") 
+# 修改特定的数据
+Department.objects.filter(id=1).update(title="IT部")
+```
+
+
+
 # MVT框架
 
 * Model
@@ -297,3 +422,33 @@ python manage.py createsuperuser
 	* yum install -y libmariadbclient-dev
 	* pip3 install  mysqlclient
 
+# 请求与响应
+
+## 请求
+
+django中的视图函数默认会传一个request对象，这个对象封装了用户发送过来的所有请求相关的数据
+
+post表单请求需要默认带csrf令牌
+
+### 获取数据
+
+```python
+request.method               # 获取请求方式
+request.GET                  # 获取url上传递的数据
+request.POST                 # 获取POST请求中的数据
+request.POST.get("字段名")    # 获取POST请求中的指定字段的数据
+```
+
+## 响应
+
+django中可以返回传统的http响应或者html文件
+
+```python
+return HttpResponse("hello")             # 返回http响应
+return render(request, 'user_add.html')  # 返回网页
+redirect(url_for("show_user"))           # 返回重定向
+```
+
+## 交互过程
+
+请求先在过urls.py中进行匹配，再转发到应用的views.py中进行响应的处理
