@@ -185,7 +185,9 @@ django中推荐的写法
 
 ## 模板语法
 
-在html中写一些占位符，再由django框架对这些占位符进行解释替换
+在html中写一些占位符，再由django框架对这些占位符进行解释替换。
+
+模板语法不允许加()，如{{ data.get_gender_display() }} 这样是错误的，应该写成{{ data.get_gender_display }}
 
 ### 引用变量
 
@@ -214,6 +216,49 @@ django中推荐的写法
 {% elif n == 2 %}
 {% else %}
 {% endif %}
+```
+
+### 模板
+
+layout.html，包含大部分通用的样式
+
+```html
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'plugins/bootstrap/css/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'css/common.css' %}">
+    {% block css %}{% endblock %}
+</head>
+<body>
+{% block content %}{% endblock %}
+<script src="{% static 'plugins/bootstrap/js/bootstrap.bundle.js' %}"></script>
+{% block js %}{% endblock %}
+</body>
+</html>
+```
+
+子html
+
+```html
+{% extends 'layout.html' %}
+{% block title %} 部门列表 {% endblock %}
+{% block content %}
+<h1>内容</h1>
+{% endblock %}
+```
+
+### 过滤器
+
+因为模板语法不方便函数传参，所以用了django自带了过滤器这种内置函数来弥补不能传参的问题
+
+#### 日期格式化
+
+```html
+<td>{{ data.create_date | date:"Y-m-d"}}</td>
 ```
 
 ## ORM
@@ -249,11 +294,14 @@ django中推荐的写法
 
 #### 创建表
 
+创建表demo
+
 ```python
 class UserInfo(models.Model):
-    name = models.CharField(max_length=32)
-    password = models.CharField(max_length=64)
-    age = models.IntegerField()
+    #verbose_name是用来说明这个字段的含义
+    name = models.CharField(verbose_name="姓名", max_length=32)
+    password = models.CharField(verbose_name="密码", max_length=64)
+    age = models.IntegerField(verbose_name="年龄")
 
 # orm会翻译为
 # create table app_userinfo(
