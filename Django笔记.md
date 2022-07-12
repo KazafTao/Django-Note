@@ -189,6 +189,8 @@ django中推荐的写法
 
 模板语法不允许加()，如{{ data.get_gender_display() }} 这样是错误的，应该写成{{ data.get_gender_display }}
 
+另外，要使用数组下标的时候，要用arr.0而不是 arr[0]
+
 ### 引用变量
 
 引用变量需要用{{ 变量名 }}
@@ -298,7 +300,7 @@ layout.html，包含大部分通用的样式
 
 ```python
 class UserInfo(models.Model):
-    #verbose_name是用来说明这个字段的含义
+    #verbose_name是用来说明这个字段的含义，在modelform中还可以作为字段的label
     name = models.CharField(verbose_name="姓名", max_length=32)
     password = models.CharField(verbose_name="密码", max_length=64)
     age = models.IntegerField(verbose_name="年龄")
@@ -369,8 +371,14 @@ Department.objects.filter(id=1).delete()
 ```python
  # 查询表中的所有数据
 queryset = Department.objects.all()
-# 有条件筛选
-queryset = Department.objects.filter(id=1)
+# 有条件筛选，id为1且title为运维部
+queryset = Department.objects.filter(id=1,title="运维部")
+# 有条件筛选，title为运维部且id!=1
+queryset = Department.objects.filter(title="运维部").exclude(id=1)
+# 有条件筛选，选择以运维开头的部门
+queryset = Department.objects.filter(title__startswith="运维")
+# 有条件筛选，选择名称中包含运维的部门
+queryset = Department.objects.filter(title__contains="运维")
 # 针对只含有一条数据的查询，直接获取对象而不是一个queryset数组
 target = Department.objects.filter(id=1).first()
 # 使用查询到的数据
@@ -387,7 +395,107 @@ Department.objects.all().update(title="IT部")
 Department.objects.filter(id=1).update(title="IT部")
 ```
 
+## 组件
 
+### 表单
+
+#### Form
+
+优点
+
+- 后端校验用户提交的数据
+- 前端校验用户输入的数据并给出提示
+- 可以用for循环遍历表单中的所有字段
+- 适用于所有不涉及数据库的表单
+
+demo
+
+```python
+from django import forms
+
+class EmployeeForm(forms.Form):
+    name = forms.CharField(widget=forms.TextInput)
+    password = forms.CharField(widget=forms.PasswordInput)
+    create_date = forms.DateField()
+   
+if request.method == "GET":
+    context = {
+        'choice': Employee.gender_chioce,
+        'departs': Department.objects.all(),
+        'form': EmployeeForm()
+    }
+    return render(request, 'user/add_user.html', context)
+```
+
+```html
+{% for field in form %}
+    {{ field }}
+{% endfor %}
+```
+
+#### ModelForm
+
+优点
+
+- 继承Form的优点
+- 可以关联model中的字段
+- 非常适合对数据库中的表做增删改查(直接用save函数保存到数据库中)
+
+demo
+
+```python
+from employee_manage.models import Employee
+
+class EmployeeForm(forms.ModelForm):
+    class Meta:
+        model = Employee
+        fields = ["name", "password", "gender", "age", "salary", "create_date", "depart_id"]
+        widgets = {
+            # 为name这个字段的文本输入框中添加class="form-control"这一属性，来应用bootstrap
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+        }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 也可以在初始化的时候为所有插件自动添加同一个class
+        for name, field in self.fields.items():
+            # 为password字段定制input[type=password]
+            if name == "password":
+                field.widget = forms.PasswordInput()
+            field.widget.attrs = {"class": "form-control"}
+```
+
+#### 表单校验
+
+```python
+from django.core.validators import RegexValidator, ValidationError
+
+class MobileForm(forms.ModelForm):
+    class Meta:
+        model = Mobile
+        exclude = ["id", ]
+
+    # 方式一，使用正则表达式进行校验
+    mobile = forms.CharField(label="手机号", validators=[RegexValidator(r'^\d{11}$', "必须是11位数字"), ], )
+    
+    def clean_mobile(self):
+        # 方式二：使用钩子方法验证
+        mobile_text = self.cleaned_data["mobile"]
+        # 自定义验证方法
+        if len(mobile_text) != 11:
+            raise ValidationError("必须是11位数字")
+            # 验证通过
+            return mobile_text
+
+form = MobileForm(data=request.POST)
+# 校验用户数据是否合法
+if form.is_valid():
+    # 合法则保存到数据库中
+    form.save()
+    return redirect('/user/')
+return render(request, 'user/add_user_modelform.html', {'form': form})
+```
+
+在settings.py中可以配置LANGUAGE_CODE = 'zh-hans'来让错误信息显示为中文
 
 # MVT框架
 
@@ -500,3 +608,26 @@ redirect(url_for("show_user"))           # 返回重定向
 ## 交互过程
 
 请求先在过urls.py中进行匹配，再转发到应用的views.py中进行响应的处理
+
+# Trouble shotting
+
+## 重建数据库表
+
+1.先到数据库把表删掉：drop table
+
+2.注释Django中对应的Model
+
+3.执行以下命令：
+
+```shell
+python manage.py makemigrations
+python manage.py migrate --fake
+```
+4.去掉步骤2中的注释
+
+5.执行以下命令：
+
+```shell
+python manage.py makemigrations
+python manage.py migrate
+```
