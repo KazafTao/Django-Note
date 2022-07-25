@@ -21,6 +21,8 @@ pip install django
 			- urls.py        -- uri和函数的映射关系
 			- wsgi.py        -- 接受网络请求
 
+如果用Pycharm创建，要删除settings.py中的TEMPLATES DIR
+
 ### 创建应用
 
 #### app概念
@@ -293,6 +295,14 @@ def get_range(value):
 
 #### MySQL
 
+安装驱动
+
+```shell
+pip install mysqlclient
+```
+
+配置
+
 ```python
 'default': {
     'ENGINE': 'django.db.backends.mysql',
@@ -318,6 +328,8 @@ class UserInfo(models.Model):
     name = models.CharField(verbose_name="姓名", max_length=32)
     password = models.CharField(verbose_name="密码", max_length=64)
     age = models.IntegerField(verbose_name="年龄")
+    # 外键demo,Admin为另一个模型类
+    # user = models.ForeignKey(Admin, on_delete=models.CASCADE)
 
 # orm会翻译为
 # create table app_userinfo(
@@ -813,6 +825,10 @@ django中的中间件是请求到达视图函数处理前和视图函数生成�
 
 在settings.py中将自定义的中间件类添加到MIDDLEWARE中的元组中
 
+# 画图
+
+可以使用echart组件
+
 # MVT框架
 
 * Model
@@ -852,16 +868,16 @@ python manage.py createsuperuser
 	 * setenforce 0
 	 *  新建firewalld service
 		 3.1. 在/usr/lib/firewalld/services下添加django.xml文件
-						```    
-
-									<?xml version="1.0" encoding="utf-8"?>
-			
-									<service>
-									<short>Django</short>
-									<description>My Django project.</description>
-									<port protocol="tcp" port="8001"/>
-									</service>
-						```
+		
+		```xml
+		<?xml version="1.0" encoding="utf-8"?>
+		
+		<service>
+		    <short>Django</short>
+		    <description>My Django project.</description>
+		    <port protocol="tcp" port="8001"/>
+		</service>
+		```
 		3.2. firewall-cmd --permanent --add-service=django   
 		3.3. systemctl restart firewalld    
 	 * 在阿里云上开放8001端口
@@ -869,8 +885,6 @@ python manage.py createsuperuser
 	4.1. pip install uwsgi --upgrade   
 	4.2 uwsgi --http :8001 --chdir /root/Django/  --module Django.wsgi    
 	```chdir是项目的根目录，module是有wsgi.py的那个目录```   
-
-
 
 ## 问题
 * ModuleNotFoundError: No module named '_sqlite3'
@@ -970,7 +984,85 @@ def logout():
     request.session.clear()
 ```
 
+## ajax
 
+通过表单提交数据，网页会刷新。如果希望不刷新页面同时向后端发送请求，可以使用ajax。
+
+ajax的优点
+
+- 减少客户端和服务器端双方的流量传输，传输一段json比传输一个网页和若干个html,css,js文件流量小得多
+- 提升了客户端和服务端的响应速度
+
+ajax demo
+
+```js
+$.ajax({
+    url:"地址",
+    // 请求类型，get或post，不写默认为get
+    // post请求要免除csrf_token认证，from django.views.decorators.csrf import csrf_exempt，url绑定的函数添加csrf_exempt装饰器
+    type:"post",
+    // 要发送的数据
+    data:{
+        n1:123,
+    },
+    //获取到的响应转换的格式，不写默认为响应的Content-Type
+    dataType:"JSON",
+    //请求成功后的钩子函数
+    success:function(res){
+       console.log("success"); 
+    }
+})
+```
+
+样例，ajax实现表单校验
+
+```html
+<form id="form">
+    {% csrf_token %}
+    {% block form_body %}
+    {% for field in form %}
+    <div class="mb-3">
+        <label class="form-label">{{field.label}}</label>
+        {{ field }}
+        <span style="color:red;">{{ field.errors.0 }}</span>
+    </div>
+    {% endfor %}
+    {% endblock %}
+    <button type="button" class="btn btn-primary" id="submit_btn">提交</button>
+</form>
+```
+
+```js
+$("#submit_btn").click(function(){
+    $.ajax({
+        url: '/task/add/',
+        type: "post",
+        data: $("#form").serialize(),
+        success:function(res){
+            if (res.status == 'error'){
+                $.each(res.errors,function(name,info){
+//                    先清空错误信息，防止上一次错误信息残留给用户造成误判
+                    $("#id_"+name).next().empty()
+//                    加载这次的错误信息
+                    $("#id_"+name).next().text(info[0])
+                })
+            }
+        }
+    })
+})
+```
+
+```python
+def add_task(request):
+    if request.method == "GET":
+        return render(request, 'task/add_task.html', {'form': TaskForm()})
+    form = TaskForm(data=request.POST)
+    if form.is_valid():
+        form.save()
+    else:
+        # ajax请求不能重定向或重新渲染网页，只返回json数据
+        return JsonResponse({'status': 'error', 'errors': form.errors})
+```
 
 # Trouble shotting
 
