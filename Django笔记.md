@@ -10,15 +10,17 @@ pip install django
 
 ### 创建项目
 
+项目是一个网站使用的配置和应用的集合。项目可以包含很多个应用。应用可以被很多个项目使用。
+
 	django-admin startproject {项目名}
 	项目结构
-	project
+	project                  -- 项目容器，此文件夹可改名
 		- manage.py          -- 管理项目，包括启动，创建app和管理数据
 		- project
 			- __init__.py
 			- asgi.py        -- 接收网络请求
 			- settings.py    -- 项目配置
-			- urls.py        -- uri和函数的映射关系
+			- urls.py        -- 网站的目录，uri和函数的映射关系
 			- wsgi.py        -- 接受网络请求
 
 如果用Pycharm创建，要删除settings.py中的TEMPLATES DIR
@@ -27,7 +29,9 @@ pip install django
 
 #### app概念
 
-项目下某个功能模块s的集合，比如一个网站项目下可以有用户系统app，商品系统app
+应用是一个专门做某件事的网络应用程序——比如博客系统，或者公共记录的数据库，或者小型的投票程序。
+
+应用应该是可插拔的，可以在多个项目中使用同一个应用
 
 #### 命令
 
@@ -37,7 +41,7 @@ pip install django
 
 ```
 app
-│  admin.py        -- django默认提供的admin后台管理
+│  admin.py        -- django默认提供的admin后台管理，可以用来注册站点
 │  apps.py         -- app启动类
 │  models.py       -- 对数据库进行操作
 │  tests.py        -- 单元测试用
@@ -64,6 +68,8 @@ from app import views   # app是应用名
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('/', views.index),
+    #使用name属性为url命名，这样模板在引用这个url的时候只需要用<a href="{% url 'login' %}">登录</a>就可以了，而不是写死一个url,视图函数也可以使用reverse('login')l
+    path('login/', user.user_login, name='login'),
 ]
 ```
 
@@ -145,6 +151,8 @@ urls.py 负责处理http请求，根据正则表达式，匹配app.views.py中�
   * from app名.models import 模型名 
 
 ## 视图
+
+视图的主要作用是处理用户请求并返回响应。
 
 ### 返回http响应
 
@@ -291,7 +299,7 @@ def get_range(value):
 
 ### 连接数据库
 
-在settings.py中进行配置和修改，修改DATABASES的值
+需要先安装对应的数据库驱动，然后在settings.py中进行配置和修改，修改DATABASES的值
 
 #### MySQL
 
@@ -306,11 +314,22 @@ pip install mysqlclient
 ```python
 'default': {
     'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'db_name',                     # 数据库名
+    'NAME': 'db_name',                     # 数据库名，需要在使用前先创建
     'USER':'root',
     'PASSWORD':'123456',                   # root密码
     'HOST':'127.0.0.1',                    # 数据库ip
-    'PORT':3306,                           # 数据库端口
+    'PORT': 3306,                          # 数据库端口
+}
+```
+
+#### SQLite
+
+默认的sqlite配置
+
+```python
+'default': {
+    'ENGINE': 'django.db.backends.sqlite3',
+    'NAME': BASE_DIR / 'db.sqlite3',
 }
 ```
 
@@ -328,8 +347,7 @@ class UserInfo(models.Model):
     name = models.CharField(verbose_name="姓名", max_length=32)
     password = models.CharField(verbose_name="密码", max_length=64)
     age = models.IntegerField(verbose_name="年龄")
-    # 外键demo,Admin为另一个模型类
-    # user = models.ForeignKey(Admin, on_delete=models.CASCADE)
+    
 
 # orm会翻译为
 # create table app_userinfo(
@@ -345,6 +363,46 @@ class UserInfo(models.Model):
 ```shell
 python manage.py makemigrations
 python manage.py migrate
+```
+
+##### 外键
+
+通过记者和文章的一对多案例来展示如何在model中使用外键
+
+```python
+from django.db import models
+
+
+class Reporter(models.Model):
+    """记者表"""
+
+    full_name = models.CharField(max_length=70)
+
+    def __str__(self):
+        return self.full_name
+
+
+class Article(models.Model):
+    """新闻表"""
+    pub_date = models.DateField()
+    headline = models.CharField(max_length=200)
+    content = models.TextField()
+    reporter = models.ForeignKey(Reporter, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.headline
+   
+r = Reporter()
+r.full_name = 'wade'
+a = Article(pub_date=datetime.today(), head_line='head', content='content', reporter=r)
+# 正向引用
+r = a.reporter
+# 反向引用
+r.article_set.all()
+# 通过外键创建外键关联的表的一个实例，相当于在Article表中插入一条新的数据
+a = r.article_set.create(headline='tes',content='content',pub_date=datetime.now())
+# 反向查询
+data = Article.objects.filter(reporter__full_name__startswith='wa')
 ```
 
 #### 删除表
@@ -407,6 +465,9 @@ queryset = Department.objects.filter(title__startswith="运维")
 queryset = Department.objects.filter(title__contains="运维")
 # 针对只含有一条数据的查询，直接获取对象而不是一个queryset数组
 target = Department.objects.filter(id=1).first()
+# 外键查询
+Article.objects.filter(reporter__full_name__startswith='John')
+<QuerySet [<Article: Django is cool>]>
 # 使用查询到的数据
 for object in queryset:
     print(object.id, object.title)
@@ -831,17 +892,38 @@ django中的中间件是请求到达视图函数处理前和视图函数生成�
 
 # MVT框架
 
-* Model
-* View
-	* 响应http请求
-	* 根据urls.py中url规则来匹配函数来响应http请求，url规则支持正则表达式
-* Template
+## Model
+
+模型层，用于结构化和操作你的网页应用程序的数据。
+
+## View
+视图层，处理用户请求并返回响应。
+
+一个良好的项目应该包含多个应用，每个应用配置各自的urls.py，然后include在项目的urls.py中。实现即插即用的网站应用配置。django建议除了**admin.site.urls**以外的路由都用include。
+
+## Template
+
+模板层，用于渲染向用户呈现的信息。
 
 
 # 后台管理
 
 ## 创建管理员
+```shell
 python manage.py createsuperuser
+```
+
+## 注册应用
+
+在应用的admin.py中加入如下代码
+
+```python
+from django.contrib import admin
+from .models import Question, Choice
+
+#向后台添加要管理的数据模型
+admin.site.register(Question)
+```
 
 ## 美化
  采用simpleui框架，按照官网指导进行配置，取代django自带的admin后台
@@ -1063,6 +1145,44 @@ def add_task(request):
         # ajax请求不能重定向或重新渲染网页，只返回json数据
         return JsonResponse({'status': 'error', 'errors': form.errors})
 ```
+
+# 测试
+
+## 编写测试用例
+
+在应用的test.py中可以编写需要的测试用例，某个模型的测试用例用一个继承TestCase类来实现。
+
+一个测试用例用一个test开头的函数来实现，执行`python manage.py test <应用名>` 时，测试类及类中的方法都会自动执行一遍。
+
+如下是官网的demo
+
+```python
+from datetime import timedelta
+
+from django.test import TestCase
+from django.utils import timezone
+
+from polls.models import Question
+
+
+class QuestionModelTests(TestCase):
+    def test_was_published_recently_with_future_question(self):
+        time = timezone.now() + timedelta(days=30)
+        future_question = Question(pub_date=time)
+        self.assertIs(future_question.was_published_recently(), False)
+
+    def test_was_published_recently_with_old_question(self):
+        time = timezone.now() - timedelta(days=1, seconds=1)
+        old_question = Question(pub_date=time)
+        self.assertIs(old_question.was_published_recently(), False)
+
+    def test_was_published_recently_with_recent_question(self):
+        time = timezone.now() - timedelta(hours=23, minutes=59, seconds=59)
+        recent_question = Question(pub_date=time)
+        self.assertIs(recent_question.was_published_recently(), True)
+```
+
+
 
 # Trouble shotting
 
