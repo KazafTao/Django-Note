@@ -894,7 +894,41 @@ django中的中间件是请求到达视图函数处理前和视图函数生成�
 
 ## Model
 
-模型层，用于结构化和操作你的网页应用程序的数据。
+模型层，用于结构化和操作你的网页应用程序的数据。一般来说，每一个模型都映射一张数据库表。
+
+多对一关系——使用外键
+
+一对一关系——使用onetoonefield
+
+用于扩展某个模型，模型继承隐含一对一关系。
+
+多对多关系——使用manytomanyfield，同时，多对多关系可以使用through参数来指定一个中间模型，来记录额外的信息。如
+
+```python
+from django.db import models
+
+class Person(models.Model):
+    """音乐人表"""
+    name = models.CharField(max_length=128)
+
+    def __str__(self):
+        return self.name
+
+class Group(models.Model):
+    """乐队表"""
+    name = models.CharField(max_length=128)
+    members = models.ManyToManyField(Person, through='Membership')
+
+    def __str__(self):
+        return self.name
+
+class Membership(models.Model):
+    """入队记录表"""
+    person = models.ForeignKey(Person, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    date_joined = models.DateField()
+    invite_reason = models.CharField(max_length=64)
+```
 
 ## View
 视图层，处理用户请求并返回响应。
